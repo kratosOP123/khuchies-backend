@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
-import { generateOTP } from "../libs/util.js";
+import { generateOTP, generateToken } from "../libs/util.js";
+import User from "../models/user.model.js";
 
 const currentOtp: Record<string, string> = {};
 
 export const generateOtp = async (req: Request, res: Response) => {
   try {
-    const { phoneNo } = await req.body;
+    const { phoneNo } = req.body;
 
     if (!phoneNo || phoneNo.length !== 10) {
       return res.status(400).json({
@@ -16,6 +17,10 @@ export const generateOtp = async (req: Request, res: Response) => {
     const anOtp = generateOTP();
 
     currentOtp[phoneNo] = anOtp;
+
+    setTimeout(() => {
+      if (currentOtp[phoneNo]) delete currentOtp[phoneNo];
+    }, 2000 * 60);
 
     return res.status(200).json({
       otp: anOtp,
@@ -45,11 +50,53 @@ export const verifyOTP = async (req: Request, res: Response) => {
       });
     }
 
-    currentOtp;
+    // check if OTP exists for this number
+    if (!currentOtp[phoneNo]) {
+      return res.status(410).json({
+        error: "OTP expired",
+      });
+    }
+
+    //incorrect OTP
+    if (currentOtp[phoneNo] !== otp) {
+      return res.status(400).json({
+        error: "OTP not matching",
+      });
+    }
+
+    // OTP matched → delete it (one-time use)
+    delete currentOtp[phoneNo];
+
+    const user = await User.findOne({ phoneNo });
+
+    if (user) {
+      generateToken({ userId: user._id.toString(), res });
+      return res.status(200).json({
+        message: "Logged in successfully.",
+        _id: user._id,
+        phoneNo: user.phoneNo,
+      });
+    }
+
+    const newUser = new User({
+      phoneNo,
+    });
+
+    await newUser.save();
+
+    generateToken({ userId: newUser._id.toString(), res });
+
+    if (currentOtp[phoneNo]) delete currentOtp[phoneNo];
+
+    return res.status(201).json({
+      message: "User created successfully.",
+      _id: newUser._id,
+      phoneNo: newUser.phoneNo,
+    });
   } catch (error) {
-    console.error("Error in signup controller", error);
-    res.status(500).json({
-      message: "Internal Server Error",
+    console.log(error);
+    return res.status(500).json({
+      error: "Internal Server Error",
     });
   }
 };
@@ -59,10 +106,9 @@ export const checkAuth = async (req: Request, res: Response) => {
     //@ts-ignore
     res.status(200).json(req.user);
   } catch (error: unknown) {
-    if(error instanceof Error) {
+    if (error instanceof Error) {
       console.error("Error in checkauth controller", error.message);
-    }
-    else{
+    } else {
       console.error("Error in checkauth controller", error);
     }
     res.status(500).json({
