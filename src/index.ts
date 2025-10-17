@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/", (_, res) => {
-  res.send("Backend server for khuchies.supxdevs.com");
+  res.send("Backend server for be.khuchies.supxdevs.com");
 });
 
 app.use("/api/v1", v1);
