@@ -103,7 +103,6 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
 export const checkAuth = async (req: Request, res: Response) => {
   try {
-    //@ts-ignore
     res.status(200).json(req.user);
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -131,6 +130,43 @@ export const logout = (_: Request, res: Response): void => {
     }
     res.status(500).json({
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: "Unauthorized — User not found in request",
+      });
+    }
+
+    // Delete the user from DB
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        error: "User not found or already deleted",
+      });
+    }
+
+    // Clear JWT cookie
+    res.clearCookie("jwt");
+
+    return res.status(200).json({
+      message: "Account deleted successfully",
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error in deleteAccount controller:", error.message);
+    } else {
+      console.error("Unknown error in deleteAccount:", error);
+    }
+    return res.status(500).json({
+      error: "Internal Server Error",
     });
   }
 };

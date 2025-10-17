@@ -1,17 +1,19 @@
-import mongoose from "mongoose";
+import { Schema, model, Document, Model } from "mongoose";
 
-const userSchema = new mongoose.Schema(
+export interface IUser {
+  _id: string;
+  phoneNo: string;
+  fullName?: string;
+  address?: string;
+  role?: "user" | "admin";
+}
+
+// ✅ Correct typing for Mongoose 7+
+export type IUserDocument = Document & IUser;
+export type IUserModel = Model<IUserDocument>;
+
+const userSchema = new Schema<IUserDocument>(
   {
-    fullName: {
-      type: String,
-      trim: true
-    },
-    address: {
-      type: String,
-      minlength: 1,
-      maxlength: 30,
-      trim: true
-    },
     phoneNo: {
       type: String,
       required: true,
@@ -19,12 +21,23 @@ const userSchema = new mongoose.Schema(
       minlength: 10,
       maxlength: 10,
     },
+    address: {
+      type: String,
+      minlength: 1,
+      maxlength: 30,
+      trim: true,
+    },
+    role: {
+      type: String,
+      default: "user",
+      enum: ["user", "admin"],
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const User = mongoose.model("User", userSchema);
+const User = model<IUserDocument, IUserModel>("User", userSchema);
 
 export default User;

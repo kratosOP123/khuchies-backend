@@ -7,6 +7,10 @@ const productSchema = new mongoose.Schema({
     trim: true,
     minlength: [2, "Product name must be at least 2 characters long"],
   },
+  productImageUrl: {
+    type: String,
+    required: true,
+  },
   productPrice: {
     type: Number,
     required: [true, "Product price is required"],
@@ -21,12 +25,7 @@ const productSchema = new mongoose.Schema({
   category: {
     type: [String],
     default: [],
-    enum: [
-      "Mini Cookies",
-      "Sandwich Cookies",
-      "Single Pack",
-      "Family Pack",
-    ],
+    enum: ["Mini Cookies", "Sandwich Cookies", "Single Pack", "Family Pack"],
   },
 });
 
